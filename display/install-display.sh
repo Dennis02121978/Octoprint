@@ -20,7 +20,14 @@ BAK=".bak-octoprint-lcd"
 fail() { echo "FEHLER: $1" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || fail "Bitte mit sudo starten."
 [ "$ROTATE" = 90 ] || [ "$ROTATE" = 270 ] || fail "ROTATE muss 90 oder 270 sein."
-grep -qi raspberry /proc/device-tree/model 2>/dev/null || fail "Nur fuer den Raspberry Pi."
+MODEL=$(tr -d '\0' < /proc/device-tree/model 2>/dev/null || true)
+echo "$MODEL" | grep -qi raspberry || fail "Nur fuer den Raspberry Pi."
+# OctoScreen gibt es nur als 32-Bit-Paket (armhf), und fbcp braucht den alten Grafikstack (Pi Zero bis Pi 3).
+[ "$(dpkg --print-architecture)" = "armhf" ] || fail "Dieses Skript braucht ein 32-Bit-System (armhf), gefunden: $(dpkg --print-architecture). Nimm das 32-Bit-OctoPi."
+if echo "$MODEL" | grep -qE 'Raspberry Pi (4|5)|Compute Module (4|5)'; then
+    [ "${FORCE:-0}" = 1 ] || fail "Pi 4/5 ('$MODEL'): fbcp laeuft dort nicht (kein alter Grafikstack). Mit FORCE=1 trotzdem versuchen."
+fi
+echo "Modell: $MODEL"
 
 BOOT=/boot/firmware; [ -f "$BOOT/config.txt" ] || BOOT=/boot
 [ -f "$BOOT/config.txt" ] && [ -f "$BOOT/cmdline.txt" ] || fail "config.txt/cmdline.txt nicht gefunden."

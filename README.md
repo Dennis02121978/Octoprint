@@ -2,7 +2,9 @@
 
 Skripte und Anleitung, um an einem Raspberry Pi mit **OctoPrint** (OctoPi) ein **Waveshare 3.5" SPI-Display (A, 480x320)** mit **OctoScreen** als Touch-Oberfläche zu betreiben, und beim Start das **3D-Artmaker-Logo** statt Konsolentext zu zeigen.
 
-Getestet mit: Raspberry Pi 2 Model B, OctoPi auf Raspberry Pi OS **Bookworm 32 Bit** (Kernel 6.6), OctoPrint 1.11.8, OctoScreen 2.7.4, Waveshare 3.5" LCD (A) mit ILI9486 und ADS7846-Touch.
+Getestet mit: **Raspberry Pi 2 Model B**, OctoPi auf Raspberry Pi OS **Bookworm 32 Bit** (Kernel 6.6), OctoPrint 1.11.8, OctoScreen 2.7.4, Waveshare 3.5" LCD (A) mit ILI9486 und ADS7846-Touch.
+
+**Pi 3:** Mit dem 32-Bit-OctoPi sollte es genauso laufen (gleiche Architektur, gleiche Treiber), ist aber **noch nicht getestet**. Das Display-Skript bricht auf 64-Bit-Systemen ab (OctoScreen gibt es nur als armhf-Paket) und auf Pi 4/5 (dort läuft fbcp nicht). Das Bootlogo-Paket braucht nur Python 3 und ist davon nicht betroffen.
 Andere Pi-Modelle oder Displays sind nicht getestet.
 
 > **Wichtig vorab:** Beide Skripte ändern `config.txt`, `cmdline.txt` und Systemdienste. Sie sichern die Originale als `*.bak-octoprint-lcd` bzw. `*.bak-octoprint-bootlogo` und lassen sich mit den `uninstall`-Skripten zurücknehmen.
