@@ -43,6 +43,23 @@ install -m 644 "$TMP/x/lib/udev/rules.d/70-rf-boot-logo.rules" /etc/udev/rules.d
 # show-logo liest diese Datei ein; ohne sie bricht es ab
 printf 'LOGO_DIR=/nonexistent\n' > /etc/rf-bootlogo/config
 
+echo "==> Animation berechnen (Linie laeuft durch die 3D, danach wird der Schwung gezeichnet)"
+HERE=$(cd "$(dirname "$0")" && pwd)
+[ -f "$HERE/rf-logo-anim.py" ] || fail "rf-logo-anim.py fehlt neben diesem Skript."
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pil python3-numpy
+install -m 755 "$HERE/rf-logo-anim.py" /usr/lib/rf-bootlogo/rf-logo-anim.py
+python3 /usr/lib/rf-bootlogo/rf-logo-anim.py build "$TMP/x/usr/share/rf-bootlogo/logo.png" /usr/share/rf-bootlogo/anim.bin
+# Dienst: spielt die Animation ab; ohne anim.bin wird das statische Logo gezeigt
+cat > /etc/systemd/system/rf-boot-logo@.service <<'EOF'
+[Unit]
+Description=Logo auf dem Display %i anzeigen
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/lib/rf-bootlogo/rf-logo-anim.py play /dev/%i /usr/share/rf-bootlogo/anim.bin /usr/share/rf-bootlogo/logo.rgb565
+EOF
+
 echo "==> Konsolentext ausblenden (cmdline.txt)"
 [ -e "$BOOT/cmdline.txt$BAK" ] || cp -a "$BOOT/cmdline.txt" "$BOOT/cmdline.txt$BAK"
 LINE=$(head -n 1 "$BOOT/cmdline.txt" | sed 's/fbcon=map:10/fbcon=map:9/')
@@ -56,7 +73,7 @@ sed -i 's/^After=.*/After=octoscreen.service/; s|^ExecStartPre=.*|ExecStartPre=/
 
 systemctl daemon-reload
 udevadm control --reload
-/usr/lib/rf-bootlogo/show-logo "/dev/${PANEL##*/}" || true
+python3 /usr/lib/rf-bootlogo/rf-logo-anim.py play "/dev/${PANEL##*/}" /usr/share/rf-bootlogo/anim.bin /usr/share/rf-bootlogo/logo.rgb565 || true
 
 echo
 echo "Fertig. Das Logo erscheint nach dem naechsten Neustart:  sudo reboot"

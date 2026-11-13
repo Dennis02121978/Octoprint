@@ -64,6 +64,10 @@ Was angepasst wird:
 
 Ablauf beim Start: Zuerst ist der Bildschirm kurz weiß, während der Display-Treiber lädt. Dann erscheint das Logo, und danach OctoScreen.
 
+**Animation:** Das Logo erscheint zuerst ohne die Linie durch die 3D und ohne den Schwung unter „Artmaker“. Dann läuft die Linie einmal von links nach rechts durch, danach wird der Schwung gezeichnet. Am Ende steht das unveränderte Original-Logo auf dem Display. Die Animation dauert etwa zwei Sekunden.
+
+Das Programm [`rf-logo-anim.py`](bootlogo/rf-logo-anim.py) berechnet die Animation bei der Installation aus dem Logo des Pakets (dafür werden `python3-pil` und `python3-numpy` installiert) und spielt sie beim Start ohne weitere Abhängigkeiten ab. Es schreibt nur die geänderten Bildzeilen aufs Display. Fehlt die Animationsdatei, zeigt es das statische Logo. Die Logo-Datei selbst liegt nicht in diesem Repo.
+
 Das Logo passt nur auf ein 480x320-Display im Querformat mit 16 Bit Farbtiefe. Das Skript prüft das vor der Installation.
 
 Rückgängig machen: `sudo bash bootlogo/uninstall-bootlogo.sh`.
