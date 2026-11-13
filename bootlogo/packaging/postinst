@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+[ "$1" = "configure" ] || exit 0
+
+BOOT=/boot/firmware
+[ -f "$BOOT/cmdline.txt" ] || BOOT=/boot
+BAK=.bak-octoprint-bootlogo
+
+# Konsolentext auf dem LCD ausblenden (Original wird einmal gesichert)
+[ -e "$BOOT/cmdline.txt$BAK" ] || cp -a "$BOOT/cmdline.txt" "$BOOT/cmdline.txt$BAK"
+LINE=$(head -n 1 "$BOOT/cmdline.txt" | sed 's/fbcon=map:10/fbcon=map:9/')
+case "$LINE" in *fbcon=map:*) ;; *) LINE="$LINE fbcon=map:9" ;; esac
+case "$LINE" in *vt.global_cursor_default=0*) ;; *) LINE="$LINE vt.global_cursor_default=0" ;; esac
+case "$LINE" in *root=*) printf '%s\n' "$LINE" > "$BOOT/cmdline.txt" ;; esac
+
+# fbcp erst nach OctoScreen starten, damit das Logo stehen bleibt
+FBCP=/etc/systemd/system/fbcp.service
+if [ -f "$FBCP" ]; then
+    [ -e "$FBCP$BAK" ] || cp -a "$FBCP" "$FBCP$BAK"
+    sed -i 's/^After=.*/After=octoscreen.service/; s|^ExecStartPre=.*|ExecStartPre=/bin/sleep 3|' "$FBCP"
+fi
+
+systemctl daemon-reload || true
+udevadm control --reload || true
+echo "Logo ist installiert. Es erscheint nach dem naechsten Neustart: sudo reboot"
+exit 0

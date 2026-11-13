@@ -1,0 +1,13 @@
+Package: octoprint-bootlogo
+Version: @VERSION@
+Section: misc
+Priority: optional
+Architecture: all
+Depends: python3
+Conflicts: rf-bootlogo, skipr-bootlogo
+Maintainer: Dennis Rupprecht <Dennis02121978@users.noreply.github.com>
+Description: Animiertes 3D-Artmaker-Logo beim Start auf dem LCD (OctoPrint, OctoScreen)
+ Zeigt beim Start des Raspberry Pi auf einem 480x320-SPI-Display (fbtft) das
+ 3D-Artmaker-Logo mit kurzer Animation statt Konsolentext, bis OctoScreen
+ erscheint. Das Display und OctoScreen muessen schon laufen, siehe
+ display/install-display.sh im Repo Dennis02121978/Octoprint.

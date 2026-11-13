@@ -1,15 +1,16 @@
 #!/bin/bash
-# Bootlogo (3D-Artmaker) auf dem SPI-Display bei OctoPrint + OctoScreen.
+# Animiertes Bootlogo (3D-Artmaker) auf dem SPI-Display bei OctoPrint + OctoScreen.
 # Voraussetzung: display/install-display.sh ist gelaufen und das Display funktioniert.
 #
-# Das Logo stammt aus dem 3D-Artmaker-Paket rf-bootlogo (eigentlich fuer Klipper/KlipperScreen).
-# Dieses Skript nimmt daraus nur Logo, show-logo, udev-Regel und Dienst und passt den Rest an OctoScreen an.
+# Logo, fertige Animation und Abspielprogramm stammen aus dem 3D-Artmaker-Paket rf-bootlogo 1.7.0
+# (eigentlich fuer Klipper/KlipperScreen). Dieses Skript nimmt daraus nur diese Dateien und richtet
+# alles fuer OctoScreen ein. Einfacher: das fertige Paket octoprint-bootlogo aus den Releases dieses Repos.
 #
 # Aufruf: sudo bash install-bootlogo.sh
 set -euo pipefail
 
-DEB_URL="https://github.com/Dennis02121978/3D-Artmaker/releases/download/v1.5.9/rf-bootlogo_1.5.9_all.deb"
-DEB_SHA="e99352adfe5ce186951872e2d518b5605856f71a21ae0ef08451b49f13935b5f"
+DEB_URL="https://github.com/Dennis02121978/3D-Artmaker/releases/download/v1.7.0/rf-bootlogo_1.7.0_all.deb"
+DEB_SHA="e33f0345c20f3923f71cf5b0b9f1a89ac4caee8eac2e4fdb12382b902f2a1890"
 BAK=".bak-octoprint-bootlogo"
 
 fail() { echo "FEHLER: $1" >&2; exit 1; }
@@ -34,30 +35,22 @@ echo "$DEB_SHA  $TMP/rf-bootlogo.deb" | sha256sum -c --quiet - || fail "Pruefsum
 dpkg-deb -x "$TMP/rf-bootlogo.deb" "$TMP/x"
 
 echo "==> Dateien installieren"
-mkdir -p /usr/lib/rf-bootlogo /usr/share/rf-bootlogo /etc/rf-bootlogo
-install -m 755 "$TMP/x/usr/lib/rf-bootlogo/show-logo" /usr/lib/rf-bootlogo/show-logo
-install -m 644 "$TMP/x/usr/share/rf-bootlogo/logo.rgb565" /usr/share/rf-bootlogo/logo.rgb565
-install -m 644 "$TMP/x/usr/share/rf-bootlogo/logo.png" /usr/share/rf-bootlogo/logo.png
-install -m 644 "$TMP/x/lib/systemd/system/rf-boot-logo@.service" /etc/systemd/system/rf-boot-logo@.service
-install -m 644 "$TMP/x/lib/udev/rules.d/70-rf-boot-logo.rules" /etc/udev/rules.d/70-rf-boot-logo.rules
-# show-logo liest diese Datei ein; ohne sie bricht es ab
-printf 'LOGO_DIR=/nonexistent\n' > /etc/rf-bootlogo/config
-
-echo "==> Animation berechnen (Linie laeuft durch die 3D, danach wird der Schwung gezeichnet)"
-HERE=$(cd "$(dirname "$0")" && pwd)
-[ -f "$HERE/rf-logo-anim.py" ] || fail "rf-logo-anim.py fehlt neben diesem Skript."
-DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pil python3-numpy
-install -m 755 "$HERE/rf-logo-anim.py" /usr/lib/rf-bootlogo/rf-logo-anim.py
-python3 /usr/lib/rf-bootlogo/rf-logo-anim.py build "$TMP/x/usr/share/rf-bootlogo/logo.png" /usr/share/rf-bootlogo/anim.bin
-# Dienst: spielt die Animation ab; ohne anim.bin wird das statische Logo gezeigt
-cat > /etc/systemd/system/rf-boot-logo@.service <<'EOF'
+mkdir -p /usr/lib/octoprint-bootlogo /usr/share/octoprint-bootlogo
+install -m 755 "$TMP/x/usr/lib/rf-bootlogo/logo_anim.py" /usr/lib/octoprint-bootlogo/logo_anim.py
+for f in logo.png logo.rgb565 anim.bin; do
+    install -m 644 "$TMP/x/usr/share/rf-bootlogo/$f" "/usr/share/octoprint-bootlogo/$f"
+done
+cat > /etc/systemd/system/octoprint-boot-logo@.service <<'EOF'
 [Unit]
 Description=Logo auf dem Display %i anzeigen
 DefaultDependencies=no
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /usr/lib/rf-bootlogo/rf-logo-anim.py play /dev/%i /usr/share/rf-bootlogo/anim.bin /usr/share/rf-bootlogo/logo.rgb565
+ExecStart=/usr/bin/python3 /usr/lib/octoprint-bootlogo/logo_anim.py play /dev/%i /usr/share/octoprint-bootlogo/anim.bin /usr/share/octoprint-bootlogo/logo.rgb565
+EOF
+cat > /etc/udev/rules.d/70-octoprint-boot-logo.rules <<'EOF'
+ACTION=="add", SUBSYSTEM=="graphics", KERNEL=="fb[0-9]*", ATTR{name}=="fb_*", TAG+="systemd", ENV{SYSTEMD_WANTS}+="octoprint-boot-logo@%k.service"
 EOF
 
 echo "==> Konsolentext ausblenden (cmdline.txt)"
@@ -73,7 +66,6 @@ sed -i 's/^After=.*/After=octoscreen.service/; s|^ExecStartPre=.*|ExecStartPre=/
 
 systemctl daemon-reload
 udevadm control --reload
-python3 /usr/lib/rf-bootlogo/rf-logo-anim.py play "/dev/${PANEL##*/}" /usr/share/rf-bootlogo/anim.bin /usr/share/rf-bootlogo/logo.rgb565 || true
 
 echo
 echo "Fertig. Das Logo erscheint nach dem naechsten Neustart:  sudo reboot"

@@ -44,9 +44,23 @@ Was das Skript macht:
 
 Rückgängig machen: `sudo bash display/uninstall-display.sh`.
 
-## 2. Bootlogo
+## 2. Bootlogo (mit Animation)
 
 Voraussetzung: Abschnitt 1 ist erledigt und das Display läuft.
+
+**Variante A: fertiges Paket (empfohlen).** Das Paket `octoprint-bootlogo` liegt unter [Releases](https://github.com/Dennis02121978/Octoprint/releases/latest):
+
+```bash
+cd ~
+wget https://github.com/Dennis02121978/Octoprint/releases/download/v1.0.0/octoprint-bootlogo_1.0.0_all.deb
+echo "801554332550420c3b43b24f234fed7a19e8005aba34ccbf82e153222ce0a957  octoprint-bootlogo_1.0.0_all.deb" | sha256sum -c
+sudo apt install ./octoprint-bootlogo_1.0.0_all.deb
+sudo reboot
+```
+
+Am Ende der Prüfsummen-Ausgabe muss `OK` stehen. Entfernen: `sudo apt remove octoprint-bootlogo` (stellt `cmdline.txt` und `fbcp.service` wieder her).
+
+**Variante B: Skript.** Macht dasselbe ohne Paket:
 
 ```bash
 cd Octoprint
@@ -54,23 +68,23 @@ sudo bash bootlogo/install-bootlogo.sh
 sudo reboot
 ```
 
-Das Logo stammt aus dem Paket **rf-bootlogo** von 3D-Artmaker (Version 1.5.9). Das Paket ist für Klipper und KlipperScreen gebaut und lässt sich auf OctoPrint nicht direkt installieren. Das Skript lädt es, prüft die Prüfsumme und nimmt daraus nur Logo, `show-logo`, udev-Regel und Dienst.
+Rückgängig machen: `sudo bash bootlogo/uninstall-bootlogo.sh`.
+
+**Animation:** Das Logo erscheint zuerst ohne die Linie durch die 3D und ohne den Schwung unter „Artmaker“. Dann läuft die Linie einmal von links nach rechts durch, danach wird der Schwung unter „Artmaker“ gezeichnet. Am Ende steht das unveränderte Original-Logo auf dem Display. Das Ganze dauert etwa zwei Sekunden. Das Abspielen braucht nur Python 3 und schreibt nur die geänderten Bildzeilen aufs Display.
+
+Logo, fertige Animation und Abspielprogramm stammen aus dem 3D-Artmaker-Paket **rf-bootlogo 1.7.0**. Das ist für Klipper und KlipperScreen gebaut und lässt sich auf OctoPrint nicht direkt installieren. Das Skript und das Paket in diesem Repo nehmen daraus nur diese Dateien (die Prüfsumme wird geprüft) und richten sie für OctoScreen ein.
 
 Was angepasst wird:
 
 - `cmdline.txt`: `fbcon=map:10` wird zu `fbcon=map:9` und `vt.global_cursor_default=0` kommt dazu. Dadurch erscheint kein Konsolentext auf dem LCD.
 - `fbcp.service` startet erst nach `octoscreen.service`, damit das Logo stehen bleibt, bis OctoScreen erscheint.
-- `/etc/rf-bootlogo/config` wird angelegt. Ohne diese Datei bricht `show-logo` ab.
+- Ein udev-Dienst zeigt die Animation, sobald sich das Display meldet.
 
-Ablauf beim Start: Zuerst ist der Bildschirm kurz weiß, während der Display-Treiber lädt. Dann erscheint das Logo, und danach OctoScreen.
+Ablauf beim Start: Zuerst ist der Bildschirm kurz weiß, während der Display-Treiber lädt. Dann erscheint das Logo mit der Animation, und danach OctoScreen.
 
-**Animation:** Das Logo erscheint zuerst ohne die Linie durch die 3D und ohne den Schwung unter „Artmaker“. Dann läuft die Linie einmal von links nach rechts durch, danach wird der Schwung gezeichnet. Am Ende steht das unveränderte Original-Logo auf dem Display. Die Animation dauert etwa zwei Sekunden.
+Das Logo passt nur auf ein 480x320-Display im Querformat mit 16 Bit Farbtiefe. Skript und Paket prüfen das vor der Installation. Das Paket gibt es nicht für das Display selbst (Abschnitt 1): Dort müssen Dateien von Waveshare und Z-Bolt geladen werden, die ich nicht mit ausliefere.
 
-Das Programm [`rf-logo-anim.py`](bootlogo/rf-logo-anim.py) berechnet die Animation bei der Installation aus dem Logo des Pakets (dafür werden `python3-pil` und `python3-numpy` installiert) und spielt sie beim Start ohne weitere Abhängigkeiten ab. Es schreibt nur die geänderten Bildzeilen aufs Display. Fehlt die Animationsdatei, zeigt es das statische Logo. Die Logo-Datei selbst liegt nicht in diesem Repo.
-
-Das Logo passt nur auf ein 480x320-Display im Querformat mit 16 Bit Farbtiefe. Das Skript prüft das vor der Installation.
-
-Rückgängig machen: `sudo bash bootlogo/uninstall-bootlogo.sh`.
+**Paket selbst bauen** (auf einem Linux-System mit `dpkg-deb`): `bootlogo/packaging/build_deb.sh 1.0.0`
 
 ## Fehlersuche
 

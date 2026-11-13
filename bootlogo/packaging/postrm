@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+case "$1" in remove|purge) ;; *) exit 0 ;; esac
+
+BOOT=/boot/firmware
+[ -f "$BOOT/cmdline.txt" ] || BOOT=/boot
+BAK=.bak-octoprint-bootlogo
+
+# gesicherte Originale zurueckspielen
+for f in "$BOOT/cmdline.txt" /etc/systemd/system/fbcp.service; do
+    [ -e "$f$BAK" ] && mv -f "$f$BAK" "$f"
+done
+systemctl daemon-reload || true
+udevadm control --reload || true
+exit 0

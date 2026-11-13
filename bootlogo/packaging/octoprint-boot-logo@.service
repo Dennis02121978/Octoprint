@@ -1,0 +1,7 @@
+[Unit]
+Description=Logo auf dem Display %i anzeigen
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/lib/octoprint-bootlogo/logo_anim.py play /dev/%i /usr/share/octoprint-bootlogo/anim.bin /usr/share/octoprint-bootlogo/logo.rgb565
